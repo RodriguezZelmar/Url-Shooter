@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using UrlShortener.Application.Abstractions;
 using UrlShortener.Infrastructure.Persistence;
+using UrlShortener.Infrastructure.Persistence.Repositories;
 
 namespace UrlShortener.Infrastructure;
 
@@ -30,6 +32,7 @@ public static class DependencyInjection
                 throw new InvalidOperationException($"Unsupported database provider '{databaseOptions.Provider}'.");
         }
 
+        services.AddScoped<IShortUrlRepository, ShortUrlRepository>();
         services.AddScoped<DatabaseInitializer>();
 
         return services;

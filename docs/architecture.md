@@ -76,3 +76,84 @@ so their history is kept.
 `UrlShortenerDbContext` holds the provider-agnostic model. Each provider has a tiny derived context
 (`SqliteUrlShortenerDbContext`) whose only purpose is to own its migration set
 (`Persistence/Migrations/Sqlite`), because migrations contain provider-specific column types.
+
+## Flow: creating a short URL
+
+```
+POST /api/urls
+  │
+  ▼
+ShortUrlsController.Create          (Api)  model validation: [Required], [MaxLength] → 400 automatically
+  │
+  ▼
+ShortUrlService.CreateAsync         (Application)
+  ├─ validate all business rules (ShortUrlRules + "not pointing to this service" + reserved codes)
+  │     └─ any error → RequestValidationException → 400 with every error
+  ├─ customCode given?
+  │     ├─ yes: exists? → 409 · insert · unique violation? → 409
+  │     └─ no:  repeat up to MaxGenerationAttempts:
+  │              generate code → reserved or exists? → retry
+  │              insert → unique violation (concurrent insert)? → retry
+  │           all attempts failed → ShortCodeGenerationException → 500
+  └─ ShortUrl.Create(...)            (Domain) guards its invariants again
+  │
+  ▼
+ShortUrlRepository.AddAsync          (Infrastructure) INSERT; translates the provider's
+                                       unique-constraint error into DuplicateShortCodeException
+  │
+  ▼
+201 Created + Location: /api/urls/{shortCode}
+```
+
+### Why a pre-check *and* a unique index
+
+The `ShortCodeExistsAsync` check avoids a failed insert in the common case, but two requests can
+pass it at the same time with the same code. Only the database can decide atomically, so the
+unique index on `ShortCode` is the real guarantee and the repository turns its violation into a
+retry (generated codes) or a `409` (custom codes). The rejected entity is detached from the
+`DbContext` so the retry does not try to insert it again.
+
+### Short code generation
+
+`RandomShortCodeGenerator` uses `RandomNumberGenerator.GetString` over a Base62 alphabet: uniform
+(no modulo bias), cryptographically secure, URL-safe without encoding. Codes are not derived from
+the database id (an encoded id would be sequential and enumerable). The generator sits behind
+`IShortCodeGenerator`, which also lets the tests force collisions deterministically.
+
+Codes are case-sensitive (`abc1` ≠ `ABC1`). Words that would shadow the service's own routes
+(`swagger`, `openapi`, `health`) are reserved, compared case-insensitively because ASP.NET Core
+matches literal route segments that way.
+
+## Validation layers
+
+1. **API model** — data annotations on `CreateShortUrlRequest` reject obviously malformed input
+   before any code runs (`[ApiController]` returns `400` automatically).
+2. **Application** — `ShortUrlService` checks every business rule and reports all errors at once.
+   It never trusts that step 1 happened, so other hosts can call it directly.
+3. **Domain** — `ShortUrl.Create` re-checks its invariants and throws if they are broken.
+
+All three use the constants and rules in `ShortUrlRules`, so limits are defined once.
+
+## Error handling
+
+Use cases throw exceptions that describe business outcomes (`RequestValidationException`,
+`ShortUrlNotFoundException`, `ShortCodeConflictException`, …). They know nothing about HTTP.
+`ApiExceptionHandler` (an `IExceptionHandler`) is the single place that maps them to status codes
+and writes `ProblemDetails`. Unknown exceptions become a generic `500`; their details are logged,
+never returned.
+
+## Configuration
+
+`UrlShortenerOptions` (section `UrlShortener`) holds the public `BaseUrl`, code length, retry limit
+and optional default lifetime. `BaseUrl` is the only place the service's address is defined; short
+URLs are built with `UrlShortenerOptions.BuildShortUrl`. `UrlShortenerOptionsValidator` runs at
+startup (`ValidateOnStart`), so a bad configuration fails fast instead of at the first request.
+
+The Application layer does not read configuration itself: the host binds the options. Another
+application embedding the service can bind them from any source.
+
+## Logging
+
+Code depends only on `ILogger<T>` (Microsoft.Extensions.Logging). Creation logs the short code and
+the destination **host**, not the full URL, because query strings frequently contain tokens or
+personal data.
