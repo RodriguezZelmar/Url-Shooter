@@ -12,6 +12,7 @@ All request and response bodies are JSON. Dates are ISO 8601; responses are alwa
 |--------|-----------------------------|------------------------------|
 | POST   | `/api/urls`                 | Create a short URL           |
 | GET    | `/api/urls/{shortCode}`     | Get the details of a short URL |
+| GET    | `/{shortCode}`              | Redirect to the original URL |
 
 ---
 
@@ -71,6 +72,36 @@ Returns the same body as the creation response.
 | 200    | The link exists (active, inactive or expired) |
 | 400    | `shortCode` has an invalid format         |
 | 404    | No link with that code                    |
+
+---
+
+### GET /{shortCode}
+
+The public short link. Resolves the code and redirects the visitor.
+
+```http
+GET /Pr3s5R8 HTTP/1.1
+
+HTTP/1.1 302 Found
+Location: https://example.com/a/very/long/url
+Cache-Control: no-store
+```
+
+| Status | When                                                                                       |
+|--------|--------------------------------------------------------------------------------------------|
+| 302    | The link exists and is active. `Location` holds the original URL                           |
+| 404    | Unknown code, malformed code (only 4–32 letters and digits match the route) or deactivated link |
+
+**Why `302 Found`.** A permanent redirect (`301`/`308`) is cached by browsers, so repeat visits
+would never reach the service: they would not be counted and a later deactivation or expiration
+would be ignored by those browsers. `302` and `307` are both temporary; for `GET` they behave the
+same, and `302` is the status every client and crawler understands. `Cache-Control: no-store` makes
+the "do not cache" intent explicit for proxies.
+
+A deactivated link answers `404`, exactly like a missing one, so visitors learn nothing about it.
+
+Swagger UI lists this endpoint, but the browser follows the redirect itself and usually cannot
+show the destination (cross-origin). Try it from the address bar or with `curl -i`.
 
 ## Errors
 

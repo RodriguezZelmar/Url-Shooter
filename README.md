@@ -80,6 +80,21 @@ Location: http://localhost:5000/api/urls/Pr3s5R8
 }
 ```
 
+Opening the short URL redirects to the original address:
+
+```bash
+curl -i http://localhost:5000/Pr3s5R8
+```
+
+```http
+HTTP/1.1 302 Found
+Location: https://example.com/a/very/long/url
+Cache-Control: no-store
+```
+
+The redirect is a temporary `302` so that every visit reaches the service and links can be
+deactivated later (see [the decision](docs/architecture.md#redirect-status-code-302-found)).
+
 See [docs/api.md](docs/api.md) for every endpoint, field rule and error.
 
 ## Short codes
@@ -121,7 +136,7 @@ dotnet test
 - [x] 1. Solution and architecture
 - [x] 2. Domain model and database
 - [x] 3. URL creation and short code generation
-- [ ] 4. Redirection
+- [x] 4. Redirection
 - [ ] 5. Expiration
 - [ ] 6. Visit tracking
 - [ ] 7. Statistics

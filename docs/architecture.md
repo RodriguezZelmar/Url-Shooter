@@ -124,6 +124,34 @@ Codes are case-sensitive (`abc1` ≠ `ABC1`). Words that would shadow the servic
 (`swagger`, `openapi`, `health`) are reserved, compared case-insensitively because ASP.NET Core
 matches literal route segments that way.
 
+## Flow: redirection
+
+```
+GET /{shortCode}
+  │   route constraint: 4–32 letters/digits, otherwise 404 without touching the database
+  ▼
+RedirectController                  (Api)
+  ▼
+RedirectService.ResolveAsync        (Application)
+  ├─ find by ShortCode (unique index lookup) ── not found → 404
+  ├─ inactive?                                ── yes       → 404 (same answer as "not found")
+  └─ return OriginalUrl
+  ▼
+302 Found, Location: <OriginalUrl>, Cache-Control: no-store
+```
+
+### Redirect status code: 302 Found
+
+| Option | Cached by browsers | Visits counted on repeat | Can be disabled later |
+|--------|--------------------|--------------------------|-----------------------|
+| 301 / 308 (permanent) | yes, indefinitely | no | not for browsers that cached it |
+| 302 / 307 (temporary) | no (unless told to) | yes | yes |
+
+The service needs statistics, expiration and deactivation, so a permanent redirect is ruled out.
+Between the temporary ones, `307` only differs in guaranteeing the method is preserved, which is
+irrelevant for `GET`; `302` is used because it is the universally understood choice. The decision
+is applied in a single place (`RedirectController`).
+
 ## Validation layers
 
 1. **API model** — data annotations on `CreateShortUrlRequest` reject obviously malformed input

@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using UrlShortener.Application.Options;
+using UrlShortener.Application.Redirects;
 using UrlShortener.Application.ShortCodes;
 using UrlShortener.Application.ShortUrls;
 
@@ -21,6 +22,7 @@ public static class DependencyInjection
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<IShortCodeGenerator, RandomShortCodeGenerator>();
         services.AddScoped<ShortUrlService>();
+        services.AddScoped<RedirectService>();
 
         return services;
     }
