@@ -97,6 +97,13 @@ deactivated later (see [the decision](docs/architecture.md#redirect-status-code-
 
 See [docs/api.md](docs/api.md) for every endpoint, field rule and error.
 
+## Expiration
+
+Links can have an optional `expiresAt` (must be in the future when the link is created). From that
+instant on, `GET /{shortCode}` returns `410 Gone` instead of redirecting. Expired links are kept in
+the database (with their statistics); they are never deleted automatically. Links without
+`expiresAt` never expire, unless `UrlShortener:DefaultLifetime` is configured.
+
 ## Short codes
 
 - **Random and independent of the database id**: 7 Base62 characters (`A-Z a-z 0-9`, safe in any
@@ -137,7 +144,7 @@ dotnet test
 - [x] 2. Domain model and database
 - [x] 3. URL creation and short code generation
 - [x] 4. Redirection
-- [ ] 5. Expiration
+- [x] 5. Expiration
 - [ ] 6. Visit tracking
 - [ ] 7. Statistics
 - [ ] 8. Administrative listing (pagination and filters)

@@ -22,9 +22,11 @@ public sealed class RedirectController(RedirectService redirectService) : Contro
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <response code="302">Redirect to the original URL (<c>Location</c> header).</response>
     /// <response code="404">The code does not exist or the link has been deactivated.</response>
+    /// <response code="410">The link has expired.</response>
     [HttpGet("/{shortCode:regex(^[[a-zA-Z0-9]]{{4,32}}$)}")]
     [ProducesResponseType(StatusCodes.Status302Found)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status410Gone, "application/problem+json")]
     public async Task<IActionResult> RedirectToOriginal(string shortCode, CancellationToken cancellationToken)
     {
         var originalUrl = await redirectService.ResolveAsync(shortCode, cancellationToken);

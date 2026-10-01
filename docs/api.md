@@ -91,6 +91,7 @@ Cache-Control: no-store
 |--------|--------------------------------------------------------------------------------------------|
 | 302    | The link exists and is active. `Location` holds the original URL                           |
 | 404    | Unknown code, malformed code (only 4–32 letters and digits match the route) or deactivated link |
+| 410    | The link has expired (`expiresAt` is in the past)                                          |
 
 **Why `302 Found`.** A permanent redirect (`301`/`308`) is cached by browsers, so repeat visits
 would never reach the service: they would not be counted and a later deactivation or expiration
@@ -99,6 +100,24 @@ same, and `302` is the status every client and crawler understands. `Cache-Contr
 the "do not cache" intent explicit for proxies.
 
 A deactivated link answers `404`, exactly like a missing one, so visitors learn nothing about it.
+
+### Expired links
+
+A link is expired from the exact `expiresAt` instant onwards. Requests to an expired link get
+`410 Gone` instead of a redirect:
+
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.11",
+  "title": "Short URL expired.",
+  "status": 410,
+  "detail": "The short URL 'promo2026' expired at 2026-12-31T23:59:59.0000000Z."
+}
+```
+
+`410` (rather than `404`) tells the client that the link did exist and will not come back.
+Expired links are **not deleted**: `GET /api/urls/{shortCode}` still returns them and their
+history is preserved.
 
 Swagger UI lists this endpoint, but the browser follows the redirect itself and usually cannot
 show the destination (cross-origin). Try it from the address bar or with `curl -i`.

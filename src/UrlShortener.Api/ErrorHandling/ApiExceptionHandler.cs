@@ -24,6 +24,7 @@ internal sealed class ApiExceptionHandler(IProblemDetailsService problemDetailsS
             },
             DomainValidationException domain => Problem(StatusCodes.Status400BadRequest, "Invalid request.", domain.Message),
             ShortUrlNotFoundException notFound => Problem(StatusCodes.Status404NotFound, "Short URL not found.", notFound.Message),
+            ShortUrlExpiredException expired => Problem(StatusCodes.Status410Gone, "Short URL expired.", expired.Message),
             ShortCodeConflictException conflict => Problem(StatusCodes.Status409Conflict, "Short code already in use.", conflict.Message),
             _ => null,
         };

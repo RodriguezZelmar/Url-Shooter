@@ -30,3 +30,15 @@ public sealed class ShortCodeConflictException(string shortCode)
 /// </summary>
 public sealed class ShortCodeGenerationException(int attempts)
     : Exception($"Could not generate a unique short code after {attempts} attempts.");
+
+/// <summary>
+/// The link exists but its expiration date has passed. Maps to 410 Gone: the resource existed and will not
+/// come back, which is more precise than 404 and lets clients tell "wrong code" from "too late".
+/// </summary>
+public sealed class ShortUrlExpiredException(string shortCode, DateTime expiredAt)
+    : Exception($"The short URL '{shortCode}' expired at {expiredAt:O}.")
+{
+    public string ShortCode { get; } = shortCode;
+
+    public DateTime ExpiredAt { get; } = expiredAt;
+}

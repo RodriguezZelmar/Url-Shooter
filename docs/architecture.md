@@ -135,6 +135,7 @@ RedirectController                  (Api)
 RedirectService.ResolveAsync        (Application)
   ├─ find by ShortCode (unique index lookup) ── not found → 404
   ├─ inactive?                                ── yes       → 404 (same answer as "not found")
+  ├─ expired (ExpiresAt <= now)?            ── yes       → 410 Gone (the link is kept)
   └─ return OriginalUrl
   ▼
 302 Found, Location: <OriginalUrl>, Cache-Control: no-store
@@ -151,6 +152,15 @@ The service needs statistics, expiration and deactivation, so a permanent redire
 Between the temporary ones, `307` only differs in guaranteeing the method is preserved, which is
 irrelevant for `GET`; `302` is used because it is the universally understood choice. The decision
 is applied in a single place (`RedirectController`).
+
+### Expiration
+
+`ShortUrl.IsExpired(now)` is the single definition: a link is expired when `ExpiresAt` is set and
+`ExpiresAt <= now`. The current time comes from `TimeProvider`, so tests control the clock.
+
+Expiration is evaluated when a link is used; nothing deletes or rewrites expired rows. Keeping
+them preserves statistics and history and avoids a background job. Expired links answer
+`410 Gone` (they existed and will not come back), while unknown or deactivated links answer `404`.
 
 ## Validation layers
 
