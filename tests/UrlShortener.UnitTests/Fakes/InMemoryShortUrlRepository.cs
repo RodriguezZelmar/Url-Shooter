@@ -1,4 +1,5 @@
 using UrlShortener.Application.Abstractions;
+using UrlShortener.Application.ShortUrls;
 using UrlShortener.Domain.ShortUrls;
 
 namespace UrlShortener.UnitTests.Fakes;
@@ -23,6 +24,21 @@ internal sealed class InMemoryShortUrlRepository : IShortUrlRepository
 
     public Task<bool> ShortCodeExistsAsync(string shortCode, CancellationToken cancellationToken = default) =>
         Task.FromResult(_items.ContainsKey(shortCode));
+
+    public int SaveCount { get; private set; }
+
+    public Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        SaveCount++;
+        return Task.CompletedTask;
+    }
+
+    public Task<(IReadOnlyList<ShortUrl> Items, int TotalCount)> ListAsync(
+        ListShortUrlsQuery query, DateTime now, CancellationToken cancellationToken = default)
+    {
+        var items = _items.Values.OrderByDescending(x => x.CreatedAt).ToList();
+        return Task.FromResult<(IReadOnlyList<ShortUrl>, int)>((items.Skip((query.Page - 1) * query.PageSize).Take(query.PageSize).ToList(), items.Count));
+    }
 
     public Task AddAsync(ShortUrl shortUrl, CancellationToken cancellationToken = default)
     {

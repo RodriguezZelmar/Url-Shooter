@@ -56,6 +56,44 @@ public sealed class ShortUrlService(
         return ToResponse(shortUrl);
     }
 
+    public async Task<PagedResponse<ShortUrlResponse>> ListAsync(ListShortUrlsQuery query, CancellationToken cancellationToken = default)
+    {
+        if (query.Page < 1 || query.PageSize is < 1 or > ListShortUrlsQuery.MaxPageSize)
+        {
+            throw new RequestValidationException(new Dictionary<string, string[]>
+            {
+                ["pageSize"] = [$"Page must be >= 1 and pageSize between 1 and {ListShortUrlsQuery.MaxPageSize}."],
+            });
+        }
+
+        var (items, totalCount) = await repository.ListAsync(query, timeProvider.GetUtcNow().UtcDateTime, cancellationToken);
+        var totalPages = (int)Math.Ceiling(totalCount / (double)query.PageSize);
+
+        return new PagedResponse<ShortUrlResponse>(items.Select(ToResponse).ToList(), query.Page, query.PageSize, totalCount, totalPages);
+    }
+
+    public async Task<ShortUrlResponse> UpdateAsync(string shortCode, UpdateShortUrlRequest request, CancellationToken cancellationToken = default)
+    {
+        ShortCodeGuard.EnsureValid(shortCode);
+
+        var shortUrl = await repository.GetByShortCodeAsync(shortCode, cancellationToken)
+            ?? throw new ShortUrlNotFoundException(shortCode);
+
+        if (request.IsActive is true)
+        {
+            shortUrl.Activate();
+        }
+        else if (request.IsActive is false)
+        {
+            shortUrl.Deactivate();
+        }
+
+        await repository.SaveChangesAsync(cancellationToken);
+        logger.LogInformation("Short URL {ShortCode} set active={IsActive}", shortCode, shortUrl.IsActive);
+
+        return ToResponse(shortUrl);
+    }
+
     private ShortUrlResponse ToResponse(ShortUrl shortUrl) => new(
         shortUrl.ShortCode,
         _options.BuildShortUrl(shortUrl.ShortCode),

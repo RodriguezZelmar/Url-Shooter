@@ -110,6 +110,11 @@ Every successful redirect stores a `UrlVisit`: the date, the user agent and only
 the referrer (`https://news.example.com`). IP addresses and full referrer URLs are never stored.
 If recording a visit fails, the visitor is still redirected.
 
+## Administration
+
+`GET /api/urls` lists links with paging and filters (code prefix, active/inactive, expired,
+`createdBy`); `PATCH /api/urls/{shortCode}` activates or deactivates a link. See [docs/api.md](docs/api.md).
+
 ## Statistics
 
 `GET /api/urls/{shortCode}/stats` returns the total number of visits, the last visit, visits per
@@ -165,7 +170,7 @@ dotnet test
 - [x] 5. Expiration
 - [x] 6. Visit tracking
 - [x] 7. Statistics
-- [ ] 8. Administrative listing (pagination and filters)
+- [x] 8. Administrative listing (pagination and filters)
 - [ ] 9. Rate limiting
 - [ ] 10. Unit tests
 - [ ] 11. Integration tests

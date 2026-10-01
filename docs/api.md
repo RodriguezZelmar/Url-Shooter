@@ -13,6 +13,8 @@ All request and response bodies are JSON. Dates are ISO 8601; responses are alwa
 | POST   | `/api/urls`                 | Create a short URL           |
 | GET    | `/api/urls/{shortCode}`     | Get the details of a short URL |
 | GET    | `/api/urls/{shortCode}/stats` | Usage statistics of a short URL |
+| GET    | `/api/urls`                 | List short URLs (paging + filters) |
+| PATCH  | `/api/urls/{shortCode}`     | Activate or deactivate a short URL |
 | GET    | `/{shortCode}`              | Redirect to the original URL |
 
 ---
@@ -176,6 +178,19 @@ history is preserved.
 
 Swagger UI lists this endpoint, but the browser follows the redirect itself and usually cannot
 show the destination (cross-origin). Try it from the address bar or with `curl -i`.
+
+---
+
+### GET /api/urls
+
+Administrative listing, newest first. Query: `page` (default 1), `pageSize` (1–100, default 20),
+`shortCode` (prefix, case-sensitive), `status` (`Active`|`Inactive`), `expired` (`true`|`false`),
+`createdBy` (exact). Response: `{ items, page, pageSize, totalCount, totalPages }`. `400` on invalid paging.
+
+### PATCH /api/urls/{shortCode}
+
+Body `{ "isActive": false }` disables the link (redirect answers `404`, statistics are kept);
+`true` enables it again. Returns `200` with the link, `400` on invalid input, `404` if missing.
 
 ## Errors
 

@@ -34,6 +34,26 @@ public sealed class ShortUrlsController(ShortUrlService shortUrlService, UrlStat
         return CreatedAtAction(nameof(Get), new { shortCode = response.ShortCode }, response);
     }
 
+    /// <summary>Lists short URLs (administration), newest first, with paging and optional filters.</summary>
+    /// <response code="200">One page of short URLs.</response>
+    /// <response code="400">Invalid paging or filter values.</response>
+    [HttpGet]
+    [ProducesResponseType<PagedResponse<ShortUrlResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    public Task<PagedResponse<ShortUrlResponse>> List([FromQuery] ListShortUrlsQuery query, CancellationToken cancellationToken) =>
+        shortUrlService.ListAsync(query, cancellationToken);
+
+    /// <summary>Activates or deactivates a short URL. Deactivated links answer 404 on redirect but keep their statistics.</summary>
+    /// <response code="200">The updated short URL.</response>
+    /// <response code="400">Invalid short code or body.</response>
+    /// <response code="404">No short URL exists with that code.</response>
+    [HttpPatch("{shortCode}")]
+    [ProducesResponseType<ShortUrlResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+    public Task<ShortUrlResponse> Update(string shortCode, UpdateShortUrlRequest request, CancellationToken cancellationToken) =>
+        shortUrlService.UpdateAsync(shortCode, request, cancellationToken);
+
     /// <summary>Returns the details of a short URL.</summary>
     /// <param name="shortCode">The short code, for example <c>a8F2k9Q</c>.</param>
     /// <param name="cancellationToken">Cancellation token.</param>

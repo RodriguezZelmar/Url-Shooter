@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using UrlShortener.Application.Abstractions;
+using UrlShortener.Application.ShortUrls;
 using UrlShortener.Domain.ShortUrls;
 
 namespace UrlShortener.Infrastructure.Persistence.Repositories;
@@ -27,5 +28,50 @@ internal sealed class ShortUrlRepository(UrlShortenerDbContext dbContext) : ISho
             entry.State = EntityState.Detached;
             throw new DuplicateShortCodeException(shortUrl.ShortCode, exception);
         }
+    }
+
+    public Task SaveChangesAsync(CancellationToken cancellationToken = default) =>
+        dbContext.SaveChangesAsync(cancellationToken);
+
+    public async Task<(IReadOnlyList<ShortUrl> Items, int TotalCount)> ListAsync(
+        ListShortUrlsQuery query, DateTime now, CancellationToken cancellationToken = default)
+    {
+        var links = dbContext.ShortUrls.AsNoTracking();
+
+        if (!string.IsNullOrEmpty(query.ShortCode))
+        {
+            // A prefix match can use the unique index on ShortCode.
+            links = links.Where(x => x.ShortCode.StartsWith(query.ShortCode));
+        }
+
+        if (query.Status is { } status)
+        {
+            var active = status == ShortUrlStatus.Active;
+            links = links.Where(x => x.IsActive == active);
+        }
+
+        if (query.Expired is { } expired)
+        {
+            links = expired
+                ? links.Where(x => x.ExpiresAt != null && x.ExpiresAt <= now)
+                : links.Where(x => x.ExpiresAt == null || x.ExpiresAt > now);
+        }
+
+        if (query.CreatedBy is { } createdBy)
+        {
+            links = links.Where(x => x.CreatedBy == createdBy);
+        }
+
+        var totalCount = await links.CountAsync(cancellationToken);
+
+        // Id breaks ties between links created at the same instant, so pages are stable.
+        var items = await links
+            .OrderByDescending(x => x.CreatedAt)
+            .ThenByDescending(x => x.Id)
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
     }
 }
