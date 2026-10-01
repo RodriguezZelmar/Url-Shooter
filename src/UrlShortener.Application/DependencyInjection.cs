@@ -5,6 +5,7 @@ using UrlShortener.Application.Options;
 using UrlShortener.Application.Redirects;
 using UrlShortener.Application.ShortCodes;
 using UrlShortener.Application.ShortUrls;
+using UrlShortener.Application.Statistics;
 
 namespace UrlShortener.Application;
 
@@ -23,6 +24,7 @@ public static class DependencyInjection
         services.TryAddSingleton<IShortCodeGenerator, RandomShortCodeGenerator>();
         services.AddScoped<ShortUrlService>();
         services.AddScoped<RedirectService>();
+        services.AddScoped<UrlStatisticsService>();
 
         return services;
     }

@@ -12,6 +12,14 @@ internal sealed class InMemoryUrlVisitRepository : IUrlVisitRepository
 
     public IReadOnlyList<UrlVisit> Visits => _visits;
 
+    /// <summary>
+    /// Canned result of <see cref="GetAggregatesAsync"/>. The SQL aggregation itself is covered by the
+    /// integration tests against a real database; unit tests only check how the service uses it.
+    /// </summary>
+    public VisitAggregates Aggregates { get; set; } = new(0, null, [], []);
+
+    public (long ShortUrlId, DateTime From, DateTime ToExclusive, int TopReferrers)? LastAggregatesQuery { get; private set; }
+
     public Task AddAsync(UrlVisit visit, CancellationToken cancellationToken = default)
     {
         if (FailWith is not null)
@@ -21,5 +29,12 @@ internal sealed class InMemoryUrlVisitRepository : IUrlVisitRepository
 
         _visits.Add(visit);
         return Task.CompletedTask;
+    }
+
+    public Task<VisitAggregates> GetAggregatesAsync(
+        long shortUrlId, DateTime fromUtc, DateTime toUtcExclusive, int topReferrers, CancellationToken cancellationToken = default)
+    {
+        LastAggregatesQuery = (shortUrlId, fromUtc, toUtcExclusive, topReferrers);
+        return Task.FromResult(Aggregates);
     }
 }

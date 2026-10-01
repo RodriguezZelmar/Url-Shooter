@@ -172,6 +172,27 @@ Expiration is evaluated when a link is used; nothing deletes or rewrites expired
 them preserves statistics and history and avoids a background job. Expired links answer
 `410 Gone` (they existed and will not come back), while unknown or deactivated links answer `404`.
 
+## Flow: statistics
+
+```
+GET /api/urls/{shortCode}/stats?from=&to=
+  ▼
+UrlStatisticsService.GetAsync        (Application)
+  ├─ validate code and period (default: last 30 days, max 366 days)
+  ├─ load the link (404 if missing)
+  └─ IUrlVisitRepository.GetAggregatesAsync   (Infrastructure, 3 SQL queries)
+        1. SELECT COUNT(*), MAX(VisitedAt)            WHERE ShortUrlId = @id
+        2. SELECT day(VisitedAt), COUNT(*)            WHERE ShortUrlId = @id AND VisitedAt in period GROUP BY day
+        3. SELECT Referrer, COUNT(*) ... ORDER BY COUNT(*) DESC LIMIT 5   (same filter)
+```
+
+All counting and grouping happens in the database, so the cost of a request does not depend on
+how many visit rows exist in memory — only the aggregated rows (at most 366 days + 5 referrers)
+are transferred. Every query starts with `ShortUrlId = @id` and filters `VisitedAt` by range,
+which is exactly the shape of the `(ShortUrlId, VisitedAt)` index. Days are UTC calendar days.
+
+The period is bounded (366 days) so a single request cannot ask for an unbounded series.
+
 ## Validation layers
 
 1. **API model** — data annotations on `CreateShortUrlRequest` reject obviously malformed input

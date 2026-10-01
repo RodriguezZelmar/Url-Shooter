@@ -12,6 +12,7 @@ All request and response bodies are JSON. Dates are ISO 8601; responses are alwa
 |--------|-----------------------------|------------------------------|
 | POST   | `/api/urls`                 | Create a short URL           |
 | GET    | `/api/urls/{shortCode}`     | Get the details of a short URL |
+| GET    | `/api/urls/{shortCode}/stats` | Usage statistics of a short URL |
 | GET    | `/{shortCode}`              | Redirect to the original URL |
 
 ---
@@ -72,6 +73,60 @@ Returns the same body as the creation response.
 | 200    | The link exists (active, inactive or expired) |
 | 400    | `shortCode` has an invalid format         |
 | 404    | No link with that code                    |
+
+---
+
+### GET /api/urls/{shortCode}/stats
+
+Usage statistics. Available for active, inactive and expired links.
+
+| Query  | Type              | Default                    | Rules                                  |
+|--------|-------------------|----------------------------|----------------------------------------|
+| `from` | date (yyyy-MM-dd) | 29 days before `to`        | First UTC day of the period, inclusive |
+| `to`   | date (yyyy-MM-dd) | today (UTC)                | Last UTC day of the period, inclusive  |
+
+The period is at most 366 days and `from` must not be after `to`.
+
+```http
+GET /api/urls/redir01/stats?from=2026-09-30&to=2026-10-01
+```
+
+**200 OK**
+
+```json
+{
+  "shortCode": "redir01",
+  "originalUrl": "https://example.com/x?y=1",
+  "createdAt": "2026-10-01T21:35:19.4056054Z",
+  "expiresAt": null,
+  "isActive": true,
+  "isExpired": false,
+  "totalVisits": 42,
+  "lastVisitAt": "2026-10-01T21:41:38.5096592Z",
+  "from": "2026-09-30",
+  "to": "2026-10-01",
+  "visitsByDay": [
+    { "date": "2026-09-30", "visits": 12 },
+    { "date": "2026-10-01", "visits": 30 }
+  ],
+  "topReferrers": [
+    { "referrer": "https://news.example.com", "visits": 25 },
+    { "referrer": "https://other.example.org", "visits": 3 }
+  ]
+}
+```
+
+| Field                 | Covers                                                                 |
+|-----------------------|------------------------------------------------------------------------|
+| `totalVisits`, `lastVisitAt` | The whole life of the link                                      |
+| `visitsByDay`         | The period; UTC days, ascending; days without visits are omitted       |
+| `topReferrers`        | The period; up to 5 referrer **origins**, most visits first            |
+
+| Status | When                                                     |
+|--------|----------------------------------------------------------|
+| 200    | Statistics returned                                      |
+| 400    | Malformed short code, unparsable date, `from` > `to`, or period longer than 366 days |
+| 404    | No link with that code                                   |
 
 ---
 

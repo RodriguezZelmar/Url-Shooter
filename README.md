@@ -110,6 +110,18 @@ Every successful redirect stores a `UrlVisit`: the date, the user agent and only
 the referrer (`https://news.example.com`). IP addresses and full referrer URLs are never stored.
 If recording a visit fails, the visitor is still redirected.
 
+## Statistics
+
+`GET /api/urls/{shortCode}/stats` returns the total number of visits, the last visit, visits per
+UTC day and the top 5 referrer origins for a period (default: last 30 days, max 366 days):
+
+```bash
+curl "http://localhost:5000/api/urls/Pr3s5R8/stats?from=2026-09-01&to=2026-10-01"
+```
+
+Everything is computed with SQL aggregations (`COUNT`, `MAX`, `GROUP BY`) on an index of
+`(ShortUrlId, VisitedAt)`; visits are never loaded into memory.
+
 ## Short codes
 
 - **Random and independent of the database id**: 7 Base62 characters (`A-Z a-z 0-9`, safe in any
@@ -152,7 +164,7 @@ dotnet test
 - [x] 4. Redirection
 - [x] 5. Expiration
 - [x] 6. Visit tracking
-- [ ] 7. Statistics
+- [x] 7. Statistics
 - [ ] 8. Administrative listing (pagination and filters)
 - [ ] 9. Rate limiting
 - [ ] 10. Unit tests

@@ -48,7 +48,7 @@ public sealed class ShortUrlService(
 
     public async Task<ShortUrlResponse> GetAsync(string shortCode, CancellationToken cancellationToken = default)
     {
-        EnsureValidShortCode(shortCode);
+        ShortCodeGuard.EnsureValid(shortCode);
 
         var shortUrl = await repository.GetByShortCodeAsync(shortCode, cancellationToken)
             ?? throw new ShortUrlNotFoundException(shortCode);
@@ -56,7 +56,7 @@ public sealed class ShortUrlService(
         return ToResponse(shortUrl);
     }
 
-    internal ShortUrlResponse ToResponse(ShortUrl shortUrl) => new(
+    private ShortUrlResponse ToResponse(ShortUrl shortUrl) => new(
         shortUrl.ShortCode,
         _options.BuildShortUrl(shortUrl.ShortCode),
         shortUrl.OriginalUrl,
@@ -64,14 +64,6 @@ public sealed class ShortUrlService(
         shortUrl.ExpiresAt,
         shortUrl.IsActive,
         shortUrl.CreatedBy);
-
-    internal static void EnsureValidShortCode(string shortCode)
-    {
-        if (ShortUrlRules.ValidateShortCode(shortCode) is { } error)
-        {
-            throw new RequestValidationException(new Dictionary<string, string[]> { ["shortCode"] = [error] });
-        }
-    }
 
     private async Task<ShortUrl> CreateWithCustomCodeAsync(
         CreateShortUrlRequest request, string customCode, DateTime now, DateTime? expiresAt, CancellationToken cancellationToken)
