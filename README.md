@@ -9,6 +9,8 @@ REST service that turns long URLs into short codes (`https://ejemplo.com/un/url/
 
 - C# / .NET 10 (LTS)
 - ASP.NET Core Web API (controllers)
+- Entity Framework Core 10
+- SQLite (local development)
 - xUnit
 
 ## Solution structure
@@ -23,11 +25,25 @@ UrlShortener.slnx
 ├── tests/
 │   ├── UrlShortener.UnitTests/         Domain and application logic.
 │   └── UrlShortener.IntegrationTests/  HTTP endpoints end to end.
-├── docker/                           Container files.
 └── docs/                             Architecture, API and deployment documentation.
 ```
 
 See [docs/architecture.md](docs/architecture.md) for the responsibilities of each layer.
+
+## Domain model
+
+| Entity     | Purpose                                                                                     |
+|------------|---------------------------------------------------------------------------------------------|
+| `ShortUrl` | A short code mapped to an original URL, with creation date, optional expiration, active flag and an optional `CreatedBy` label |
+| `UrlVisit` | One successful redirection (date, user agent and referrer origin), used for statistics       |
+
+The database id of a `ShortUrl` is never exposed: clients only see the short code, which is generated
+independently. No IP addresses are stored (see [Privacy](docs/architecture.md#privacy)).
+
+## Database
+
+EF Core with SQLite for local development. In the `Development` environment the API applies pending
+migrations on startup and creates `urlshortener.db` next to the API project.
 
 ## Requirements
 
@@ -46,7 +62,7 @@ dotnet test
 ## Roadmap
 
 - [x] 1. Solution and architecture
-- [ ] 2. Domain model and database
+- [x] 2. Domain model and database
 - [ ] 3. URL creation and short code generation
 - [ ] 4. Redirection
 - [ ] 5. Expiration

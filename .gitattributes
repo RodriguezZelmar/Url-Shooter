@@ -1,0 +1,4 @@
+# Normalize line endings in the repository; shell scripts and Dockerfiles must keep LF.
+* text=auto
+*.sh text eol=lf
+Dockerfile text eol=lf
