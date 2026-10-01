@@ -33,6 +33,7 @@ public static class DependencyInjection
         }
 
         services.AddScoped<IShortUrlRepository, ShortUrlRepository>();
+        services.AddScoped<IUrlVisitRepository, UrlVisitRepository>();
         services.AddScoped<DatabaseInitializer>();
 
         return services;

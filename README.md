@@ -104,6 +104,12 @@ instant on, `GET /{shortCode}` returns `410 Gone` instead of redirecting. Expire
 the database (with their statistics); they are never deleted automatically. Links without
 `expiresAt` never expire, unless `UrlShortener:DefaultLifetime` is configured.
 
+## Visit tracking
+
+Every successful redirect stores a `UrlVisit`: the date, the user agent and only the **origin** of
+the referrer (`https://news.example.com`). IP addresses and full referrer URLs are never stored.
+If recording a visit fails, the visitor is still redirected.
+
 ## Short codes
 
 - **Random and independent of the database id**: 7 Base62 characters (`A-Z a-z 0-9`, safe in any
@@ -145,7 +151,7 @@ dotnet test
 - [x] 3. URL creation and short code generation
 - [x] 4. Redirection
 - [x] 5. Expiration
-- [ ] 6. Visit tracking
+- [x] 6. Visit tracking
 - [ ] 7. Statistics
 - [ ] 8. Administrative listing (pagination and filters)
 - [ ] 9. Rate limiting

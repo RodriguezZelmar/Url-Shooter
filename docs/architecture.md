@@ -136,6 +136,7 @@ RedirectService.ResolveAsync        (Application)
   ├─ find by ShortCode (unique index lookup) ── not found → 404
   ├─ inactive?                                ── yes       → 404 (same answer as "not found")
   ├─ expired (ExpiresAt <= now)?            ── yes       → 410 Gone (the link is kept)
+  ├─ record UrlVisit (date, user agent, referrer origin) ── failure is logged, never breaks the redirect
   └─ return OriginalUrl
   ▼
 302 Found, Location: <OriginalUrl>, Cache-Control: no-store
@@ -152,6 +153,15 @@ The service needs statistics, expiration and deactivation, so a permanent redire
 Between the temporary ones, `307` only differs in guaranteeing the method is preserved, which is
 irrelevant for `GET`; `302` is used because it is the universally understood choice. The decision
 is applied in a single place (`RedirectController`).
+
+### Visit tracking
+
+Only successful redirects are recorded (`404`/`410` answers are not visits). The visit is inserted
+synchronously before answering; it is a single-row insert on an indexed table, cheap enough at
+this scale. If the insert fails, the error is logged and the visitor is still redirected:
+statistics are secondary to the link working. A high-traffic deployment could move the insert to a
+background queue (for example a `Channel<T>` drained by a hosted service) without changing the
+Application API.
 
 ### Expiration
 

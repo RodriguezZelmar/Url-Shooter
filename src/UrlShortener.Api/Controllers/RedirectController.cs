@@ -9,7 +9,7 @@ namespace UrlShortener.Api.Controllers;
 [Tags("Redirect")]
 public sealed class RedirectController(RedirectService redirectService) : ControllerBase
 {
-    /// <summary>Redirects to the original URL.</summary>
+    /// <summary>Redirects to the original URL and records the visit.</summary>
     /// <remarks>
     /// Answers <c>302 Found</c> with the original URL in the <c>Location</c> header.
     /// A temporary redirect is used on purpose: browsers and proxies do not cache it, so every visit
@@ -29,7 +29,8 @@ public sealed class RedirectController(RedirectService redirectService) : Contro
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status410Gone, "application/problem+json")]
     public async Task<IActionResult> RedirectToOriginal(string shortCode, CancellationToken cancellationToken)
     {
-        var originalUrl = await redirectService.ResolveAsync(shortCode, cancellationToken);
+        var visitor = new VisitorInfo(Request.Headers.UserAgent.ToString(), Request.Headers.Referer.ToString());
+        var originalUrl = await redirectService.ResolveAsync(shortCode, visitor, cancellationToken);
 
         // 302 is not cacheable by default; "no-store" makes that explicit for intermediaries.
         Response.Headers[HeaderNames.CacheControl] = "no-store";

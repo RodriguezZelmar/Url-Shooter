@@ -89,7 +89,7 @@ Cache-Control: no-store
 
 | Status | When                                                                                       |
 |--------|--------------------------------------------------------------------------------------------|
-| 302    | The link exists and is active. `Location` holds the original URL                           |
+| 302    | The link exists, is active and has not expired. `Location` holds the original URL. The visit is recorded |
 | 404    | Unknown code, malformed code (only 4–32 letters and digits match the route) or deactivated link |
 | 410    | The link has expired (`expiresAt` is in the past)                                          |
 
