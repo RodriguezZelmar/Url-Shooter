@@ -59,6 +59,14 @@ dotnet run --project src/UrlShortener.Api --launch-profile http
 The API listens on `http://localhost:5000`; Swagger UI opens at `http://localhost:5000/swagger`,
 where every endpoint can be tried.
 
+## Working in VS Code
+
+Open `UrlShortener.code-workspace` (double-click it, or `code UrlShortener.code-workspace`) and accept the recommended extensions
+(C# Dev Kit, EditorConfig, Mermaid). The shared `.vscode/` folder provides:
+
+- **Ctrl+Shift+B** — build the solution (`build` task); **Terminal → Run Task…** also offers `test`, `clean`, `watch` and more.
+- **F5** — runs `UrlShortener.Api` under the debugger on http://localhost:5000 and opens Swagger UI.
+
 ## Usage
 
 ```bash
